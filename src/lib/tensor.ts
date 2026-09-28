@@ -37,20 +37,6 @@ export class tensor {
         return this.dimensions.map(Number);
     }
 
-    get2D(i: number, j: number): number {
-        const [dim0, dim1] = this.shape;
-
-        if (i < 0 || i >= dim0) {
-            throw new RangeError(`i=${i}, dim0=${dim0}`);
-        }
-
-        if (j < 0 || j >= dim1) {
-            throw new RangeError(`j=${j}, dim1=${dim1}`);
-        }
-
-        return this.data[i + dim0 * j];
-    }
-
     load() {
         const count = Number(this.dimensions.reduce((a, b) => a * b, 1n));
         const data = new Float32Array(count);

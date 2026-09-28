@@ -1,6 +1,7 @@
 import type { metadata } from '@/types/gguf';
 import { mmap, offset } from './mmap';
 import { tensor } from './tensor';
+import { transformer_block } from './transformer-block';
 
 export class GGUF {
     public version;
@@ -9,6 +10,8 @@ export class GGUF {
 
     public metadata: metadata = {} as any;
     public tensors: tensor[] = [];
+
+    public transformer_blocks: transformer_block[] = [];
 
     constructor(file_path: string) {
         const file = new mmap(file_path);
@@ -48,7 +51,18 @@ export class GGUF {
 
         const alignment = this.metadata['general.alignment'] ? BigInt(this.metadata['general.alignment']) : 32n;
         const tensor_data_offset = new offset(Number(align_offset(BigInt(file.position), alignment)));
-        for (const info of tensor_infos) this.tensors.push(new tensor(info.name, info.dimensions, info.type, info.offset, file, tensor_data_offset));
+        for (const info of tensor_infos) {
+            const new_tensor = new tensor(info.name, info.dimensions, info.type, info.offset, file, tensor_data_offset);
+            this.tensors.push(new_tensor);
+            if (new_tensor.name.startsWith('blk.')) {
+                const parts = new_tensor.name.split('.');
+                const block_index = parseInt(parts[1], 10);
+                if (!this.transformer_blocks[block_index]) {
+                    this.transformer_blocks[block_index] = new transformer_block(block_index);
+                }
+                this.transformer_blocks[block_index].add(new_tensor);
+            }
+        }
     }
 }
 
